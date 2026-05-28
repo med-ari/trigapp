@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bitácora de Operaciones: Estación Borealis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js"></script>
+<style>
+  :root {
+    --bg: #0b0f1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e3a5f;
+    --accent: #00d4ff;
+    --accent2: #7c3aed;
+    --accent3: #10b981;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --dim: #475569;
+    --green-glow: #10b98133;
+    --blue-glow: #00d4ff22;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* SCANLINE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 6rem;
+  }
+
+  /* HEADER */
+  .header {
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    background: var(--surface);
+    padding: 2rem 2rem 1.5rem;
+    margin-bottom: 2.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle at top right, var(--blue-glow), transparent 70%);
+    pointer-events: none;
+  }
+  .header-badge {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 3px 10px;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+  }
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 0.5rem;
+  }
+  .header h1 span { color: var(--accent); }
+  .header-meta {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    margin-top: 0.75rem;
+  }
+  .header-meta span { color: var(--accent3); margin-right: 1.5rem; }
+
+  /* MODEL BOX */
+  .model-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 2.5rem;
+  }
+  .model-box .label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+  .model-formula {
+    font-size: 1.15rem;
+    text-align: center;
+    padding: 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    margin: 0.75rem 0;
+  }
+  .model-desc {
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 0.75rem;
+  }
+
+  /* ANATOMY */
+  .anatomy {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+  }
+  .anatomy-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1rem 1.25rem;
+  }
+  .anatomy-card .tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 0.4rem;
+  }
+  .anatomy-card .value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    margin-bottom: 0.3rem;
+  }
+  .anatomy-card p { font-size: 13px; color: var(--muted); }
+
+  /* PHASE SECTIONS */
+  .phase {
+    margin-bottom: 3rem;
+  }
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .phase-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    padding: 4px 10px;
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+  .phase h2 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* TASK CARDS */
+  .task {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+  }
+  .task-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    user-select: none;
+  }
+  .task-header:hover { background: var(--surface2); }
+  .task-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 28px;
+    padding-top: 1px;
+  }
+  .task-title-block { flex: 1; }
+  .task-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.2rem;
+  }
+  .task-subtitle { font-size: 13px; color: var(--muted); }
+  .task-arrow {
+    font-size: 20px;
+    color: var(--dim);
+    transition: transform 0.3s;
+    padding-top: 2px;
+  }
+  .task.open .task-arrow { transform: rotate(90deg); color: var(--accent); }
+
+  .task-body {
+    display: none;
+    padding: 0 1.5rem 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+  .task.open .task-body { display: block; }
+
+  /* CONTEXTUAL ALERT */
+  .alert {
+    padding: 0.875rem 1.1rem;
+    margin: 1rem 0;
+    font-size: 14px;
+    border-left: 3px solid;
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+  }
+  .alert-warn { border-color: var(--warn); background: #f59e0b11; color: #fbbf24; }
+  .alert-info { border-color: var(--accent); background: #00d4ff11; color: var(--muted); }
+  .alert-info b { color: var(--accent); }
+  .alert-success { border-color: var(--accent3); background: #10b98111; color: #6ee7b7; }
+  .alert-warn b { color: var(--warn); }
+
+  /* STEP BOX */
+  .steps {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+    font-size: 14px;
+  }
+  .steps .step-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+  }
+  .steps ol { padding-left: 1.4rem; color: var(--muted); }
+  .steps ol li { margin-bottom: 0.4rem; line-height: 1.6; }
+  .steps ol li b { color: var(--text); }
+
+  /* NOTABLE VALUES TABLE */
+  .values-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    margin: 1rem 0;
+  }
+  .values-table th {
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    text-align: left;
+    border: 1px solid var(--border);
+  }
+  .values-table td {
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .values-table td.accent { color: var(--accent); font-weight: 700; }
+  .values-table tr:nth-child(even) td { background: var(--surface2); }
+
+  /* INTERACTIVE WORKSPACE */
+  .workspace {
+    background: var(--bg);
+    border: 1px dashed var(--dim);
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+  }
+  .workspace .ws-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 0.75rem;
+  }
+  .ws-grid {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .ws-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .ws-row label { font-size: 14px; color: var(--muted); }
+  .ws-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    padding: 6px 12px;
+    width: 120px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .ws-input:focus { border-color: var(--accent); }
+  .ws-input.correct { border-color: var(--accent3); background: #10b98111; }
+  .ws-input.wrong { border-color: var(--danger); background: #ef444411; }
+  .ws-check {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    padding: 7px 18px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: background 0.2s;
+    margin-top: 0.75rem;
+  }
+  .ws-check:hover { background: var(--blue-glow); }
+  .ws-feedback {
+    font-size: 13px;
+    margin-top: 0.6rem;
+    min-height: 1.4em;
+    font-family: 'Space Mono', monospace;
+  }
+  .fb-ok { color: var(--accent3); }
+  .fb-err { color: var(--danger); }
+  .fb-hint { color: var(--warn); }
+
+  /* REVEAL SOLUTION */
+  .reveal-btn {
+    background: transparent;
+    border: 1px solid var(--dim);
+    color: var(--dim);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 6px 16px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 0.75rem;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .reveal-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .solution {
+    display: none;
+    background: var(--surface2);
+    border: 1px solid var(--accent2);
+    border-left: 4px solid var(--accent2);
+    padding: 1rem 1.25rem;
+    margin-top: 0.75rem;
+    font-size: 14px;
+  }
+  .solution.visible { display: block; }
+  .solution .sol-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 0.5rem;
+  }
+  .solution p { color: var(--muted); line-height: 1.8; margin-bottom: 0.4rem; }
+  .solution p b { color: var(--text); }
+  .solution .sol-result {
+    color: var(--accent3);
+    font-weight: 700;
+    font-size: 1.05rem;
+    font-family: 'Space Mono', monospace;
+    margin-top: 0.5rem;
+  }
+
+  /* GRAPH */
+  .graph-wrap {
+    margin: 1.25rem 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 1rem;
+  }
+  canvas { width: 100%; display: block; }
+
+  /* INSIGHT BOX */
+  .insight {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--accent3);
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+    font-size: 14px;
+  }
+  .insight .ins-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent3);
+    margin-bottom: 0.5rem;
+  }
+  .insight p { color: var(--muted); }
+  .insight p b { color: var(--text); }
+
+  /* CHALLENGE */
+  .challenge {
+    border: 1px solid var(--accent2);
+    background: linear-gradient(135deg, #1a2235, #0b0f1a);
+    padding: 1.25rem 1.5rem;
+    margin: 1rem 0;
+    position: relative;
+  }
+  .challenge::before {
+    content: '⚡ DESAFÍO EXTENDIDO';
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--accent2);
+    display: block;
+    margin-bottom: 0.6rem;
+  }
+  .challenge p { font-size: 14px; color: var(--muted); margin-bottom: 0.5rem; }
+  .challenge p b { color: var(--text); }
+
+  /* PROGRESS BAR */
+  .progress-bar-wrap {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 0.5rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .progress-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .progress-track {
+    flex: 1;
+    height: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.5s;
+  }
+  .progress-count {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  /* FOOTER */
+  .footer {
+    border-top: 1px solid var(--border);
+    padding-top: 1.5rem;
+    margin-top: 2rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--dim);
+    text-align: center;
+  }
+
+  /* MCQ */
+  .mcq { margin: 0.75rem 0; }
+  .mcq-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 0.7rem 1rem;
+    margin-bottom: 0.4rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .mcq-option:hover { border-color: var(--accent); color: var(--text); }
+  .mcq-option.selected { border-color: var(--accent); background: var(--blue-glow); color: var(--text); }
+  .mcq-option.correct { border-color: var(--accent3); background: #10b98111; color: #6ee7b7; }
+  .mcq-option.wrong { border-color: var(--danger); background: #ef444411; color: #fca5a5; }
+  .mcq-option .opt-key {
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    min-width: 20px;
+    color: var(--accent);
+  }
+  .mcq-option.correct .opt-key { color: var(--accent3); }
+  .mcq-option.wrong .opt-key { color: var(--danger); }
+
+  @media (max-width: 600px) {
+    .anatomy { grid-template-columns: 1fr; }
+    .ws-row { grid-template-columns: 1fr; }
+    .ws-input { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar-wrap">
+  <span class="progress-label">Progreso</span>
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  <span class="progress-count" id="progressCount">0 / 8</span>
+</div>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-badge">🛰️ Bitácora de Operaciones — Clasificado</div>
+    <h1>Estación <span>Borealis</span></h1>
+    <p style="color:var(--muted); font-size:14px; margin-top:0.5rem;">Protocolo de Gestión de Energía Fotovoltaica · Modo de Emergencia Activo</p>
+    <div class="header-meta">
+      <span>📍 Región Sub-Ártica</span>
+      <span>📅 Año Estándar: 360 días</span>
+      <span>⚠️ Calculadora: OFFLINE</span>
+    </div>
+  </div>
+
+  <!-- MISSION BRIEF -->
+  <div style="font-size:15px; color:var(--muted); margin-bottom:2rem; padding:0 0.25rem;">
+    <p>Analista, el software de predicción ha fallado. Debes reconstruir manualmente el comportamiento energético de la estación usando únicamente <b style="color:var(--text)">razonamiento algebraico</b> y los valores notables del seno. La siguiente función modela las horas de luz solar diaria \(L\) en función del día del año \(t\):</p>
+  </div>
+
+  <!-- MODEL -->
+  <div class="model-box">
+    <div class="label">▶ Modelo Operativo</div>
+    <div class="model-formula">
+      \[ L(t) = 12 + 8 \cdot \sin\!\left(\dfrac{\pi}{180}(t - 80)\right) \]
+    </div>
+    <div class="model-desc">
+      Válido para un año estándar de 360 días. La variable \(t\) representa el día del año (\(1 \leq t \leq 360\)).
+    </div>
+  </div>
+
+  <!-- ANATOMY -->
+  <p style="font-size:12px; font-family:'Space Mono',monospace; color:var(--dim); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:0.75rem;">▸ Anatomía del modelo</p>
+  <div class="anatomy">
+    <div class="anatomy-card">
+      <div class="tag">Eje de equilibrio</div>
+      <div class="value">12</div>
+      <p>Promedio anual de horas de luz. El centro de oscilación de la función.</p>
+    </div>
+    <div class="anatomy-card">
+      <div class="tag">Amplitud</div>
+      <div class="value">8</div>
+      <p>Variación máxima desde el centro. Determina cuánto oscilan las horas de luz.</p>
+    </div>
+    <div class="anatomy-card">
+      <div class="tag">Factor de conversión</div>
+      <div class="value">π/180</div>
+      <p>Convierte días en radianes. Equivale a que 180 días = media vuelta (\(\pi\) rad).</p>
+    </div>
+    <div class="anatomy-card">
+      <div class="tag">Desfase temporal</div>
+      <div class="value">80</div>
+      <p>Sincroniza el modelo con el Equinoccio de Primavera (Día 80 del año).</p>
+    </div>
+  </div>
+
+  <!-- VALORES NOTABLES -->
+  <div style="margin-bottom:2.5rem;">
+    <p style="font-size:12px; font-family:'Space Mono',monospace; color:var(--dim); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:0.75rem;">▸ Valores notables del seno (sin calculadora)</p>
+    <table class="values-table">
+      <thead>
+        <tr><th>Ángulo (grados)</th><th>Ángulo (radianes)</th><th>\(\sin(\theta)\)</th><th>Cuadrante</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>0°</td><td>\(0\)</td><td class="accent">0</td><td>—</td></tr>
+        <tr><td>30°</td><td>\(\pi/6\)</td><td class="accent">1/2 = 0,5</td><td>I</td></tr>
+        <tr><td>90°</td><td>\(\pi/2\)</td><td class="accent">1</td><td>I (máximo)</td></tr>
+        <tr><td>150°</td><td>\(5\pi/6\)</td><td class="accent">1/2 = 0,5</td><td>II</td></tr>
+        <tr><td>180°</td><td>\(\pi\)</td><td class="accent">0</td><td>—</td></tr>
+        <tr><td>270°</td><td>\(3\pi/2\)</td><td class="accent">−1</td><td>III (mínimo)</td></tr>
+      </tbody>
+    </table>
+    <div class="alert alert-info" style="margin-top:0.75rem;">
+      <b>🔑 Simetría clave:</b>&nbsp; El seno tiene el mismo valor en \(\theta\) y en \(180° - \theta\). Por ejemplo: \(\sin(30°) = \sin(150°) = 0{,}5\). Necesitarás esto en la Fase 3.
+    </div>
+  </div>
+
+  <!-- =================== FASE 1 =================== -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-num">Fase 01</div>
+      <h2>Seguridad del Sistema — Validación del Modelo</h2>
+    </div>
+
+    <!-- TAREA 1 -->
+    <div class="task" id="task1">
+      <div class="task-header" onclick="toggleTask('task1')">
+        <div class="task-num">01</div>
+        <div class="task-title-block">
+          <div class="task-title">El Límite de la Amplitud</div>
+          <div class="task-subtitle">¿Qué rango de luz solar es físicamente posible?</div>
+        </div>
+        <div class="task-arrow">›</div>
+      </div>
+      <div class="task-body">
+        <div class="alert alert-info">
+          <div><b>Contexto:</b> El sensor de la estación usa una amplitud de 8. Otro ingeniero propone cambiarla a 13. El sistema arroja "Error Físico". ¿Por qué?</div>
+        </div>
+
+        <div class="steps">
+          <div class="step-label">▶ Ruta de análisis</div>
+          <ol>
+            <li>Recuerda que \(\sin(\theta)\) siempre está entre \(-1\) y \(1\).</li>
+            <li>Sustituye esos valores extremos en \(L(t) = 12 + 8 \cdot \sin(\ldots)\) para obtener el <b>máximo y mínimo</b>.</li>
+            <li>Repite el procedimiento con amplitud 13. ¿Qué valor máximo obtienes?</li>
+            <li>¿Cuántas horas tiene un día terrestre? ¿Ese valor máximo es físicamente posible?</li>
+          </ol>
+        </div>
+
+        <div class="workspace">
+          <div class="ws-label">📟 Terminal de verificación</div>
+          <div class="ws-grid">
+            <div class="ws-row">
+              <label>Horas de luz máxima con amplitud 8:</label>
+              <input class="ws-input" id="t1a" type="number" placeholder="h">
+            </div>
+            <div class="ws-row">
+              <label>Horas de luz mínima con amplitud 8:</label>
+              <input class="ws-input" id="t1b" type="number" placeholder="h">
+            </div>
+            <div class="ws-row">
+              <label>Horas de luz máxima con amplitud 13:</label>
+              <input class="ws-input" id="t1c" type="number" placeholder="h">
+            </div>
+          </div>
+          <button class="ws-check" onclick="checkTask1()">Verificar → </button>
+          <div class="ws-feedback" id="fb1"></div>
+        </div>
+
+        <div class="challenge">
+          <p><b>¿Qué restricción matemática debe cumplir toda amplitud válida?</b> Formula la inecuación general que debe satisfacer el parámetro \(A\) en el modelo \(L(t) = 12 + A \cdot \sin(\ldots)\) para que los valores de \(L\) sean físicamente posibles, es decir, que \(0 \leq L(t) \leq 24\) siempre.</p>
+        </div>
+
+        <button class="reveal-btn" onclick="revealSolution('sol1', this)">Mostrar resolución detallada</button>
+        <div class="solution" id="sol1">
+          <div class="sol-label">▸ Resolución</div>
+          <p>El seno oscila entre \(-1\) y \(1\), por lo que la función \(L(t)\) oscila entre \(12 - 8 = 4\) y \(12 + 8 = 20\).</p>
+          <p><b>Máximo:</b> \(12 + 8(1) = 20\) horas &nbsp;|&nbsp; <b>Mínimo:</b> \(12 + 8(-1) = 4\) horas</p>
+          <p>Con amplitud 13: el máximo sería \(12 + 13 = 25\) horas, lo cual excede las 24 horas de un día terrestre. Por eso el sistema lanza "Error Físico".</p>
+          <p><b>Restricción general:</b> Para que \(0 \leq L(t) \leq 24\), se necesita que \(12 - A \geq 0\) y \(12 + A \leq 24\), lo que da \(A \leq 12\).</p>
+          <div class="sol-result">A ≤ 12 &nbsp;&nbsp;|&nbsp;&nbsp; Máx = 20 h &nbsp;&nbsp;|&nbsp;&nbsp; Mín = 4 h</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAREA 2 -->
+    <div class="task" id="task2">
+      <div class="task-header" onclick="toggleTask('task2')">
+        <div class="task-num">02</div>
+        <div class="task-title-block">
+          <div class="task-title">El Día del Equilibrio</div>
+          <div class="task-subtitle">¿Qué ocurre cuando el argumento del seno se anula?</div>
+        </div>
+        <div class="task-arrow">›</div>
+      </div>
+      <div class="task-body">
+        <p style="color:var(--muted); font-size:14px; margin-bottom:1rem;">Sustituye \(t = 80\) en la función. Antes de calcular, <b style="color:var(--text)">predice</b> qué valor obtendrás razonando sobre qué le pasa al argumento del seno.</p>
+
+        <div class="steps">
+          <div class="step-label">▶ Ruta de análisis</div>
+          <ol>
+            <li>Calcula el argumento: \(\dfrac{\pi}{180}(80 - 80) = ?\)</li>
+            <li>Aplica \(\sin(0) = ?\)</li>
+            <li>Reemplaza en \(L(80) = 12 + 8 \cdot \sin(\ldots)\)</li>
+            <li><b>Conecta con astronomía:</b> ¿qué nombre recibe el momento del año en que el día y la noche tienen la misma duración?</li>
+          </ol>
+        </div>
+
+        <div class="workspace">
+          <div class="ws-label">📟 Terminal</div>
+          <div class="ws-grid">
+            <div class="ws-row">
+              <label>\(L(80) =\) horas de luz:</label>
+              <input class="ws-input" id="t2a" type="number" placeholder="h">
+            </div>
+          </div>
+          <div style="margin-top:0.75rem;">
+            <p style="font-size:14px; color:var(--muted); margin-bottom:0.5rem;">¿Por qué el seno se anula en ese día?</p>
+            <div class="mcq" id="mcq2">
+              <div class="mcq-option" onclick="selectMcq('mcq2', this, false)"><span class="opt-key">A</span> Porque es el día más largo del año.</div>
+              <div class="mcq-option" onclick="selectMcq('mcq2', this, true)"><span class="opt-key">B</span> Porque el argumento del seno es cero: el desfase 80 centra la función en ese día.</div>
+              <div class="mcq-option" onclick="selectMcq('mcq2', this, false)"><span class="opt-key">C</span> Porque la Tierra está más cerca del Sol ese día.</div>
+              <div class="mcq-option" onclick="selectMcq('mcq2', this, false)"><span class="opt-key">D</span> Porque la amplitud se cancela con el eje de equilibrio.</div>
+            </div>
+          </div>
+          <button class="ws-check" onclick="checkTask2()">Verificar → </button>
+          <div class="ws-feedback" id="fb2"></div>
+        </div>
+
+        <div class="insight">
+          <div class="ins-label">💡 Conexión conceptual</div>
+          <p>El Equinoccio de Primavera ocurre alrededor del 21 de marzo, que corresponde al día 80 del año. En ese momento, el eje de la Tierra no está inclinado ni hacia ni alejado del Sol, por lo que la duración del día y la noche son aproximadamente iguales (12 horas cada uno). Matemáticamente, el desfase de 80 en el modelo captura exactamente ese evento.</p>
+        </div>
+
+        <button class="reveal-btn" onclick="revealSolution('sol2', this)">Mostrar resolución detallada</button>
+        <div class="solution" id="sol2">
+          <div class="sol-label">▸ Resolución</div>
+          <p>\(L(80) = 12 + 8 \cdot \sin\!\left(\dfrac{\pi}{180}(80 - 80)\right) = 12 + 8 \cdot \sin(0) = 12 + 8 \cdot 0 = 12\)</p>
+          <p>La función vale exactamente 12 porque el desfase de 80 fue elegido precisamente para que el modelo coincida con el equinoccio, el único día donde la función cruza su valor medio.</p>
+          <div class="sol-result">L(80) = 12 horas — Equinoccio de Primavera</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== FASE 2 =================== -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-num">Fase 02</div>
+      <h2>Hitos del Calendario — Cálculo sin Calculadora</h2>
+    </div>
+
+    <!-- TAREA 3 -->
+    <div class="task" id="task3">
+      <div class="task-header" onclick="toggleTask('task3')">
+        <div class="task-num">03</div>
+        <div class="task-title-block">
+          <div class="task-title">El Incremento de Energía</div>
+          <div class="task-subtitle">¿El día 110 es apto para la misión de recolección?</div>
+        </div>
+        <div class="task-arrow">›</div>
+      </div>
+      <div class="task-body">
+        <div class="alert alert-warn">
+          <b>⚠️ Requisito operacional:</b>&nbsp; La misión de recolección necesita <b>exactamente 16 horas de luz</b>. Determina si el día 110 cumple la condición.
+        </div>
+
+        <div class="steps">
+          <div class="step-label">▶ Procedimiento paso a paso (muéstralo todo)</div>
+          <ol>
+            <li><b>Paso 1 — Restar el desfase:</b> calcula \(t - 80 = 110 - 80 = ?\)</li>
+            <li><b>Paso 2 — Calcular el argumento:</b> \(\dfrac{\pi}{180} \times 30 = ?\) Simplifica la fracción.</li>
+            <li><b>Paso 3 — Aplicar valor notable:</b> consulta la tabla y encuentra \(\sin\) de ese ángulo.</li>
+            <li><b>Paso 4 — Calcular \(L(110)\):</b> sustituye todo en la fórmula.</li>
+          </ol>
+        </div>
+
+        <div class="workspace">
+          <div class="ws-label">📟 Terminal</div>
+          <div class="ws-grid">
+            <div class="ws-row">
+              <label>Argumento del seno (en grados):</label>
+              <input class="ws-input" id="t3arg" type="number" placeholder="°">
+            </div>
+            <div class="ws-row">
+              <label>\(L(110) =\) horas de luz:</label>
+              <input class="ws-input" id="t3a" type="number" placeholder="h">
+            </div>
+          </div>
+          <button class="ws-check" onclick="checkTask3()">Verificar → </button>
+          <div class="ws-feedback" id="fb3"></div>
+        </div>
+
+        <div class="challenge">
+          <p><b>Más allá del dato:</b> Si la misión requiere 14 horas, ¿en qué día del año se alcanzarán exactamente esas 14 horas por primera vez después del equinoccio? Plantea la ecuación y resuélvela con los valores notables del seno.</p>
+        </div>
+
+        <button class="reveal-btn" onclick="revealSolution('sol3', this)">Mostrar resolución detallada</button>
+        <div class="solution" id="sol3">
+          <div class="sol-label">▸ Resolución</div>
+          <p>\(L(110) = 12 + 8 \cdot \sin\!\left(\dfrac{\pi}{180}(110 - 80)\right) = 12 + 8 \cdot \sin\!\left(\dfrac{\pi}{180} \cdot 30\right)\)</p>
+          <p>\(= 12 + 8 \cdot \sin\!\left(\dfrac{30\pi}{180}\right) = 12 + 8 \cdot \sin\!\left(\dfrac{\pi}{6}\right) = 12 + 8 \cdot \dfrac{1}{2} = 12 + 4 = 16\)</p>
+          <p><b>Desafío:</b> Para 14 horas: \(14 = 12 + 8\sin(\theta)\) → \(\sin(\theta) = 0{,}25\). Esto no corresponde a un valor notable exacto.</p>
+          <div class="sol-result">L(110) = 16 horas ✓ — La misión es apta el día 110</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAREA 4 -->
+    <div class="task" id="task4">
+      <div class="task-header" onclick="toggleTask('task4')">
+        <div class="task-num">04</div>
+        <div class="task-title-block">
+          <div class="task-title">Búsqueda del Momento Crítico</div>
+          <div class="task-subtitle">Encuentra el máximo absoluto razonando desde el seno</div>
+        </div>
+        <div class="task-arrow">›</div>
+      </div>
+      <div class="task-body">
+        <div class="alert alert-warn">
+          <b>⚠️ Prohibido:</b>&nbsp; No busques la respuesta. Debes deducirla razonando sobre cuándo el seno alcanza su valor máximo y qué ecuación genera eso en \(t\).
+        </div>
+
+        <p style="color:var(--muted); font-size:14px; margin: 1rem 0;">El seno es máximo cuando su argumento es igual a <b style="color:var(--text)">\(\pi/2\) radianes (90°)</b>. Usa eso para encontrar el día \(t\) en que la función alcanza su máximo.</p>
+
+        <div class="steps">
+          <div class="step-label">▶ Cadena de razonamiento</div>
+          <ol>
+            <li><b>¿Cuándo es máximo el seno?</b> El máximo de \(\sin(\theta)\) ocurre cuando \(\theta = \dfrac{\pi}{2}\).</li>
+            <li><b>Plantea la ecuación:</b> \(\dfrac{\pi}{180}(t - 80) = \dfrac{\pi}{2}\)</li>
+            <li><b>Elimina \(\pi\):</b> divide ambos lados por \(\pi\) (aparece en ambos lados, se simplifica).</li>
+            <li><b>Despeja \(t\):</b> resuelve la ecuación resultante.</li>
+            <li><b>Calcula \(L\) en ese día.</b></li>
+          </ol>
+        </div>
+
+        <div class="workspace">
+          <div class="ws-label">📟 Terminal</div>
+          <div class="ws-grid">
+            <div class="ws-row">
+              <label>Día \(t\) del máximo:</label>
+              <input class="ws-input" id="t4a" type="number" placeholder="t =">
+            </div>
+            <div class="ws-row">
+              <label>Horas de luz máximas:</label>
+              <input class="ws-input" id="t4b" type="number" placeholder="h">
+            </div>
+          </div>
+          <div style="margin-top:0.75rem;">
+            <p style="font-size:14px; color:var(--muted); margin-bottom:0.5rem;">¿Cómo se llama este evento astronómico?</p>
+            <div class="mcq" id="mcq4">
+              <div class="mcq-option" onclick="selectMcq('mcq4', this, false)"><span class="opt-key">A</span> Equinoccio de Otoño</div>
+              <div class="mcq-option" onclick="selectMcq('mcq4', this, false)"><span class="opt-key">B</span> Equinoccio de Primavera</div>
+              <div class="mcq-option" onclick="selectMcq('mcq4', this, true)"><span class="opt-key">C</span> Solsticio de Verano</div>
+              <div class="mcq-option" onclick="selectMcq('mcq4', this, false)"><span class="opt-key">D</span> Perihelio</div>
+            </div>
+          </div>
+          <button class="ws-check" onclick="checkTask4()">Verificar → </button>
+          <div class="ws-feedback" id="fb4"></div>
+        </div>
+
+        <button class="reveal-btn" onclick="revealSolution('sol4', this)">Mostrar resolución detallada</button>
+        <div class="solution" id="sol4">
+          <div class="sol-label">▸ Resolución</div>
+          <p>Para que \(L(t)\) sea máximo, necesito que \(\sin(\ldots) = 1\), lo que ocurre cuando el argumento es \(\pi/2\):</p>
+          <p>\(\dfrac{\pi}{180}(t - 80) = \dfrac{\pi}{2}\)</p>
+          <p>Dividiendo por \(\pi\): \(\dfrac{t - 80}{180} = \dfrac{1}{2}\)</p>
+          <p>Multiplicando por 180: \(t - 80 = 90 \implies t = 170\)</p>
+          <p>\(L(170) = 12 + 8(1) = 20\) horas de luz.</p>
+          <div class="sol-result">t = 170 &nbsp;&nbsp;|&nbsp;&nbsp; L = 20 h — Solsticio de Verano</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRÁFICO -->
+  <div class="graph-wrap">
+    <p style="font-size:11px; font-family:'Space Mono',monospace; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.75rem;">▸ Visualizador del modelo — referencia visual (no reemplaza el cálculo)</p>
+    <canvas id="sineGraph" height="220"></canvas>
+    <p style="font-size:11px; color:var(--dim); margin-top:0.5rem; font-family:'Space Mono',monospace;">Días marcados: Equinoccio (80), Día 110, Solsticio verano (170), Día 230, Solsticio invierno (350)</p>
+  </div>
+
+  <!-- =================== FASE 3 =================== -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-num">Fase 03</div>
+      <h2>Logística y Cambio — Análisis Profundo</h2>
+    </div>
+
+    <!-- TAREA 5 -->
+    <div class="task" id="task5">
+      <div class="task-header" onclick="toggleTask('task5')">
+        <div class="task-num">05</div>
+        <div class="task-title-block">
+          <div class="task-title">La Velocidad del Cambio</div>
+          <div class="task-subtitle">¿Cuándo cambia más rápido la luz solar de un día al otro?</div>
+        </div>
+        <div class="task-arrow">›</div>
+      </div>
+      <div class="task-body">
+        <p style="color:var(--muted); font-size:14px; margin-bottom:1rem;">Esta pregunta no requiere calcular nada: solo observar cómo se comporta la curva del seno. Imagina la gráfica del seno: ¿dónde es más empinada, cerca del origen o cerca de sus cimas?</p>
+
+        <div class="alert alert-info">
+          <div><b>Pista conceptual:</b> La "velocidad de cambio" de una función corresponde a qué tan inclinada está su gráfica en ese punto. En el seno, la pendiente es máxima cuando el ángulo es 0° (o múltiplos de 180°) y es cero cuando el ángulo es 90° o 270°.</div>
+        </div>
+
+        <div style="margin: 1rem 0;">
+          <p style="font-size:14px; color:var(--muted); margin-bottom:0.5rem;">¿En qué momento el cambio de horas de luz de un día al siguiente es más brusco?</p>
+          <div class="mcq" id="mcq5">
+            <div class="mcq-option" onclick="selectMcq('mcq5', this, true)">
+              <span class="opt-key">A</span>
+              Cerca del Día 80 (Equinoccio), porque el argumento del seno está cerca de 0° y la curva tiene su mayor pendiente.
+            </div>
+            <div class="mcq-option" onclick="selectMcq('mcq5', this, false)">
+              <span class="opt-key">B</span>
+              Cerca del Día 170 (Solsticio), porque es cuando hay más luz y los cambios son más notorios.
+            </div>
+            <div class="mcq-option" onclick="selectMcq('mcq5', this, false)">
+              <span class="opt-key">C</span>
+              El cambio es constante a lo largo de todo el año.
+            </div>
+            <div class="mcq-option" onclick="selectMcq('mcq5', this, false)">
+              <span class="opt-key">D</span>
+              Cerca del Día 350 (Solsticio de Invierno), porque es cuando menos luz hay.
+            </div>
+          </div>
+        </div>
+
+        <div class="challenge">
+          <p><b>Para reflexionar más:</b> Si fueras agricultor en esta estación y quisieras aprovechar los cambios de luz para planificar tus cultivos, ¿en qué período del año debería ajustar más frecuentemente sus horarios de trabajo? ¿Por qué los solsticios serían períodos más "estables" para la planificación?</p>
+        </div>
+
+        <button class="ws-check" onclick="checkTask5()" style="margin-top:0.5rem;">Verificar → </button>
+        <div class="ws-feedback" id="fb5"></div>
+
+        <button class="reveal-btn" onclick="revealSolution('sol5', this)">Mostrar explicación completa</button>
+        <div class="solution" id="sol5">
+          <div class="sol-label">▸ Resolución</div>
+          <p>En el Día 80, el argumento del seno es \(\frac{\pi}{180}(80-80) = 0\). La función seno es más "empinada" (tiene mayor derivada) cuando su argumento está cerca de cero: en ese punto, pequeños cambios en \(t\) producen grandes cambios en \(\sin\).</p>
+          <p>En cambio, en el Solsticio (Día 170), el argumento del seno es \(\pi/2 = 90°\), donde la curva del seno está en su cúspide y prácticamente horizontal: grandes cambios en \(t\) producen cambios pequeños en \(\sin\).</p>
+          <p><b>Consecuencia práctica:</b> Cerca de los equinoccios, las horas de luz cambian varios minutos por día. Cerca de los solsticios, el cambio es mínimo (de ahí el nombre "sol-sticio": el sol parece detenerse).</p>
+          <div class="sol-result">Cambio más rápido → Día 80 (Equinoccio)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAREA 6 -->
+    <div class="task" id="task6">
+      <div class="task-header" onclick="toggleTask('task6')">
+        <div class="task-num">06</div>
+        <div class="task-title-block">
+          <div class="task-title">El Mínimo Absoluto</div>
+          <div class="task-subtitle">Encuentra el día más oscuro del año</div>
+        </div>
+        <div class="task-arrow">›</div>
+      </div>
+      <div class="task-body">
+        <p style="color:var(--muted); font-size:14px; margin-bottom:1rem;">Usando la misma lógica que en la Tarea 4, pero ahora para el <b style="color:var(--text)">mínimo</b> de la función, determina cuándo la estación recibirá menos horas de luz y cuántas serán.</p>
+
+        <div class="steps">
+          <div class="step-label">▶ Ruta</div>
+          <ol>
+            <li>¿Para qué ángulo el seno es mínimo (\(-1\))?</li>
+            <li>Plantea la ecuación con el argumento de \(L(t)\).</li>
+            <li>Despeja \(t\) y calcula \(L\) en ese día.</li>
+          </ol>
+        </div>
+
+        <div class="workspace">
+          <div class="ws-label">📟 Terminal</div>
+          <div class="ws-grid">
+            <div class="ws-row">
+              <label>Día \(t\) del mínimo:</label>
+              <input class="ws-input" id="t6a" type="number" placeholder="t =">
+            </div>
+            <div class="ws-row">
+              <label>Horas de luz mínimas:</label>
+              <input class="ws-input" id="t6b" type="number" placeholder="h">
+            </div>
+          </div>
+          <button class="ws-check" onclick="checkTask6()">Verificar → </button>
+          <div class="ws-feedback" id="fb6"></div>
+        </div>
+
+        <button class="reveal-btn" onclick="revealSolution('sol6', this)">Mostrar resolución detallada</button>
+        <div class="solution" id="sol6">
+          <div class="sol-label">▸ Resolución</div>
+          <p>El seno es mínimo (\(-1\)) cuando el argumento es \(\dfrac{3\pi}{2}\) (equivalente a 270°):</p>
+          <p>\(\dfrac{\pi}{180}(t - 80) = \dfrac{3\pi}{2}\)</p>
+          <p>Dividiendo por \(\pi\): \(\dfrac{t-80}{180} = \dfrac{3}{2}\)</p>
+          <p>Multiplicando por 180: \(t - 80 = 270 \implies t = 350\)</p>
+          <p>\(L(350) = 12 + 8(-1) = 4\) horas de luz. Ese es el Solsticio de Invierno.</p>
+          <div class="sol-result">t = 350 &nbsp;&nbsp;|&nbsp;&nbsp; L = 4 h — Solsticio de Invierno</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAREA 7 -->
+    <div class="task" id="task7">
+      <div class="task-header" onclick="toggleTask('task7')">
+        <div class="task-num">07</div>
+        <div class="task-title-block">
+          <div class="task-title">El Dron "Halcón" — Simetría del Seno</div>
+          <div class="task-subtitle">Usa la propiedad sin(θ) = sin(180° − θ) para encontrar el segundo día válido</div>
+        </div>
+        <div class="task-arrow">›</div>
+      </div>
+      <div class="task-body">
+        <div class="alert alert-warn">
+          <b>⚠️ Requisito operacional:</b>&nbsp; El dron "Halcón" necesita al menos 16 horas de luz. Ya sabemos que el Día 110 cumple la condición. Por simetría del seno, debe existir un segundo día (después del solsticio) con la misma cantidad de luz. Encuéntralo.
+        </div>
+
+        <div class="steps">
+          <div class="step-label">▶ Estrategia</div>
+          <ol>
+            <li>En la Tarea 3, el argumento que dio 16 horas fue \(30°\). El seno vale \(0{,}5\) también en \(180° - 30° = 150°\).</li>
+            <li>Plantea la ecuación: \(\dfrac{\pi}{180}(t - 80) = \dfrac{150\pi}{180}\)</li>
+            <li>Simplifica \(\pi\) en ambos lados y despeja \(t\).</li>
+            <li>Verifica que \(L(t) = 16\).</li>
+          </ol>
+        </div>
+
+        <div class="workspace">
+          <div class="ws-label">📟 Terminal</div>
+          <div class="ws-grid">
+            <div class="ws-row">
+              <label>Segundo día con 16 h de luz:</label>
+              <input class="ws-input" id="t7a" type="number" placeholder="t =">
+            </div>
+          </div>
+          <button class="ws-check" onclick="checkTask7()">Verificar → </button>
+          <div class="ws-feedback" id="fb7"></div>
+        </div>
+
+        <div class="insight">
+          <div class="ins-label">💡 Interpretación astronómica</div>
+          <p>El hecho de que existan <b>dos días simétricos</b> con la misma cantidad de horas de luz (uno antes del solsticio y otro después) es un fenómeno real que observamos cada año. Por ejemplo, en Chile, junio y julio tienen longitudes de día similares, pero en sentido decreciente. La función seno modela perfectamente esa simetría natural.</p>
+        </div>
+
+        <button class="reveal-btn" onclick="revealSolution('sol7', this)">Mostrar resolución detallada</button>
+        <div class="solution" id="sol7">
+          <div class="sol-label">▸ Resolución</div>
+          <p>Usando \(\sin(150°) = \sin(30°) = 0{,}5\):</p>
+          <p>\(\dfrac{\pi}{180}(t - 80) = \dfrac{150\pi}{180}\)</p>
+          <p>Dividiendo por \(\pi\): \(\dfrac{t-80}{180} = \dfrac{150}{180} = \dfrac{5}{6}\)</p>
+          <p>Multiplicando por 180: \(t - 80 = 150 \implies t = 230\)</p>
+          <p>Verificación: \(L(230) = 12 + 8 \cdot \sin(150°) = 12 + 8 \cdot 0{,}5 = 16\) ✓</p>
+          <div class="sol-result">t = 230 &nbsp;&nbsp;|&nbsp;&nbsp; Segundo día con 16 horas de luz</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAREA 8 - SÍNTESIS -->
+    <div class="task" id="task8">
+      <div class="task-header" onclick="toggleTask('task8')">
+        <div class="task-num">08</div>
+        <div class="task-title-block">
+          <div class="task-title">Síntesis Final — El Informe del Analista</div>
+          <div class="task-subtitle">Integra todo el análisis en una conclusión operacional</div>
+        </div>
+        <div class="task-arrow">›</div>
+      </div>
+      <div class="task-body">
+        <div class="alert alert-info">
+          <div><b>Misión de síntesis:</b> La directiva central solicita un informe compacto. Usando los resultados de todas las fases, responde las siguientes preguntas de integración. Aquí no hay verificación automática: el rigor del razonamiento lo evalúas tú.</div>
+        </div>
+
+        <div style="margin: 1.25rem 0; display:flex; flex-direction:column; gap:1rem;">
+
+          <div style="background:var(--bg); border:1px solid var(--border); padding:1rem 1.25rem;">
+            <p style="font-size:14px; font-weight:600; color:var(--text); margin-bottom:0.4rem;">8.1 — Período de operación del Dron "Halcón"</p>
+            <p style="font-size:13px; color:var(--muted);">Entre los días 110 y 230 el dron puede operar. ¿Cuántos días dura ese período? Argumenta por qué ese intervalo corresponde a los días con más de 16 horas de luz, usando la forma de la curva seno.</p>
+          </div>
+
+          <div style="background:var(--bg); border:1px solid var(--border); padding:1rem 1.25rem;">
+            <p style="font-size:14px; font-weight:600; color:var(--text); margin-bottom:0.4rem;">8.2 — Consecuencias de cambiar el desfase</p>
+            <p style="font-size:13px; color:var(--muted);">Si el parámetro de desfase cambiara de 80 a 100 (es decir, \(L(t) = 12 + 8\sin\!\left(\frac{\pi}{180}(t-100)\right)\)), ¿cómo cambiaría la gráfica? ¿El máximo seguiría ocurriendo en el Día 170? Calcula el nuevo día del máximo.</p>
+          </div>
+
+          <div style="background:var(--bg); border:1px solid var(--border); padding:1rem 1.25rem;">
+            <p style="font-size:14px; font-weight:600; color:var(--text); margin-bottom:0.4rem;">8.3 — Reflexión sobre el modelo</p>
+            <p style="font-size:13px; color:var(--muted);">El modelo usa un año de 360 días en lugar de 365. Explica cómo afecta esto a la precisión del modelo. ¿El período real del seno (en este modelo) es de 360 días? Usa la fórmula del período \(T = \dfrac{2\pi}{|k|}\), donde \(k = \dfrac{\pi}{180}\).</p>
+          </div>
+        </div>
+
+        <button class="reveal-btn" onclick="revealSolution('sol8', this)">Mostrar orientaciones de resolución</button>
+        <div class="solution" id="sol8">
+          <div class="sol-label">▸ Orientaciones</div>
+          <p><b>8.1:</b> El período de operación dura \(230 - 110 = 120\) días. En ese intervalo el argumento del seno va de 30° a 150°, que son exactamente los ángulos donde el seno supera o es igual a 0,5. Multiplicado por 8 y sumado a 12, eso equivale a \(L \geq 16\).</p>
+          <p><b>8.2:</b> El máximo del seno ocurre cuando \(\frac{\pi}{180}(t-100) = \frac{\pi}{2}\), lo que da \(t - 100 = 90\), entonces \(t = 190\). La gráfica se desplaza 20 días hacia la derecha. El período no cambia.</p>
+          <p><b>8.3:</b> \(T = \dfrac{2\pi}{\pi/180} = 2\pi \cdot \dfrac{180}{\pi} = 360\) días. El período del modelo es exactamente 360 días. El modelo introduce un error de 5 días al año respecto al año real (365 días), lo que acumula imprecisión en predicciones a largo plazo pero es aceptable para estimaciones de emergencia.</p>
+          <div class="sol-result">Período del modelo = 360 días ✓</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>ESTACIÓN BOREALIS · PROTOCOLO DE EMERGENCIA · MODO AUTÓNOMO</p>
+    <p style="margin-top:0.3rem; color:#1e3a5f;">Matemática 4° Medio · Funciones Trigonométricas · Sin Calculadora</p>
+  </div>
+
+</div>
+
+<script>
+  // ── TASK TOGGLE ──
+  function toggleTask(id) {
+    const el = document.getElementById(id);
+    el.classList.toggle('open');
+  }
+
+  // ── PROGRESS ──
+  const totalTasks = 8;
+  let completed = new Set();
+  function markDone(n) {
+    completed.add(n);
+    const pct = Math.round((completed.size / totalTasks) * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressCount').textContent = completed.size + ' / ' + totalTasks;
+  }
+
+  // ── MCQ ──
+  function selectMcq(groupId, el, isCorrect) {
+    const group = document.getElementById(groupId);
+    group.querySelectorAll('.mcq-option').forEach(o => {
+      o.classList.remove('selected','correct','wrong');
+    });
+    el.classList.add('selected');
+    el._isCorrect = isCorrect;
+  }
+
+  // ── REVEAL SOLUTION ──
+  function revealSolution(id, btn) {
+    const sol = document.getElementById(id);
+    sol.classList.add('visible');
+    btn.style.display = 'none';
+  }
+
+  // ── INPUT FEEDBACK ──
+  function setInputState(id, ok) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('correct','wrong');
+    el.classList.add(ok ? 'correct' : 'wrong');
+  }
+  function feedback(id, html, type) {
+    const el = document.getElementById(id);
+    el.className = 'ws-feedback ' + (type === 'ok' ? 'fb-ok' : type === 'err' ? 'fb-err' : 'fb-hint');
+    el.innerHTML = html;
+  }
+
+  // ── TASK CHECKS ──
+  function checkTask1() {
+    const a = parseFloat(document.getElementById('t1a').value);
+    const b = parseFloat(document.getElementById('t1b').value);
+    const c = parseFloat(document.getElementById('t1c').value);
+    const okA = a === 20, okB = b === 4, okC = c === 25;
+    setInputState('t1a', okA); setInputState('t1b', okB); setInputState('t1c', okC);
+    if (okA && okB && okC) {
+      feedback('fb1', '✓ Correcto. Con A=13 el máximo sería 25 h > 24 h. Imposible físicamente.', 'ok');
+      markDone(1);
+    } else {
+      let hint = '✗ ';
+      if (!okA) hint += 'Revisa el máximo (sin = 1). ';
+      if (!okB) hint += 'Revisa el mínimo (sin = −1). ';
+      if (!okC) hint += 'Revisa el máximo con amplitud 13. ';
+      feedback('fb1', hint, 'err');
+    }
+  }
+
+  function checkTask2() {
+    const a = parseFloat(document.getElementById('t2a').value);
+    const group = document.getElementById('mcq2');
+    const selected = group.querySelector('.mcq-option.selected');
+    const okA = a === 12;
+    setInputState('t2a', okA);
+    if (!okA) { feedback('fb2', '✗ Recalcula L(80) usando sin(0) = 0.', 'err'); return; }
+    if (!selected) { feedback('fb2', 'Selecciona una opción para la justificación.', 'hint'); return; }
+    group.querySelectorAll('.mcq-option').forEach(o => {
+      o.classList.remove('selected');
+      if (o._isCorrect) o.classList.add('correct');
+      else if (o.classList.contains('selected')) o.classList.add('wrong');
+    });
+    if (selected._isCorrect) {
+      feedback('fb2', '✓ Perfecto. El desfase 80 hace que el argumento sea 0 en ese día, y sin(0) = 0.', 'ok');
+      markDone(2);
+    } else {
+      feedback('fb2', '✗ La opción A no es correcta. Piensa en qué genera que el seno valga cero.', 'err');
+    }
+  }
+
+  function checkTask3() {
+    const arg = parseFloat(document.getElementById('t3arg').value);
+    const l = parseFloat(document.getElementById('t3a').value);
+    const okArg = arg === 30;
+    const okL = l === 16;
+    setInputState('t3arg', okArg); setInputState('t3a', okL);
+    if (okArg && okL) {
+      feedback('fb3', '✓ Exacto. El argumento es 30° → sin(30°) = 0,5 → L(110) = 12 + 4 = 16 h. ¡La misión es apta!', 'ok');
+      markDone(3);
+    } else {
+      let h = '✗ ';
+      if (!okArg) h += 'El argumento: (110−80) = 30°. ';
+      if (!okL) h += 'L(110) = 12 + 8·sin(30°) = 12 + 4 = ? ';
+      feedback('fb3', h, 'err');
+    }
+  }
+
+  function checkTask4() {
+    const t = parseFloat(document.getElementById('t4a').value);
+    const l = parseFloat(document.getElementById('t4b').value);
+    const group = document.getElementById('mcq4');
+    const selected = group.querySelector('.mcq-option.selected');
+    const okT = t === 170, okL = l === 20;
+    setInputState('t4a', okT); setInputState('t4b', okL);
+    if (!okT || !okL) {
+      let h = '✗ ';
+      if (!okT) h += 'Plantea: π/180·(t−80) = π/2 y despeja t. ';
+      if (!okL) h += 'L = 12 + 8·1 = ? ';
+      feedback('fb4', h, 'err'); return;
+    }
+    if (!selected) { feedback('fb4', 'Selecciona el nombre del evento astronómico.', 'hint'); return; }
+    group.querySelectorAll('.mcq-option').forEach(o => {
+      o.classList.remove('selected');
+      if (o._isCorrect) o.classList.add('correct');
+    });
+    if (selected._isCorrect) {
+      feedback('fb4', '✓ Correcto. Día 170 → Solsticio de Verano → 20 horas de luz.', 'ok');
+      markDone(4);
+    } else {
+      feedback('fb4', '✗ El nombre del evento no es correcto. El solsticio de verano es el día más largo del año.', 'err');
+    }
+  }
+
+  function checkTask5() {
+    const group = document.getElementById('mcq5');
+    const selected = group.querySelector('.mcq-option.selected');
+    if (!selected) { feedback('fb5', 'Selecciona una opción primero.', 'hint'); return; }
+    group.querySelectorAll('.mcq-option').forEach(o => {
+      o.classList.remove('selected');
+      if (o._isCorrect) o.classList.add('correct');
+      else if (o === selected && !o._isCorrect) o.classList.add('wrong');
+    });
+    if (selected._isCorrect) {
+      feedback('fb5', '✓ Correcto. La derivada del seno es máxima en 0° y mínima en 90°. Cerca del equinoccio, la función crece más rápidamente.', 'ok');
+      markDone(5);
+    } else {
+      feedback('fb5', '✗ Recuerda: la pendiente del seno es mayor cerca del origen (0°) y casi nula en su cúspide (90°).', 'err');
+    }
+  }
+
+  function checkTask6() {
+    const t = parseFloat(document.getElementById('t6a').value);
+    const l = parseFloat(document.getElementById('t6b').value);
+    const okT = t === 350, okL = l === 4;
+    setInputState('t6a', okT); setInputState('t6b', okL);
+    if (okT && okL) {
+      feedback('fb6', '✓ Perfecto. Día 350, Solsticio de Invierno, solo 4 horas de luz.', 'ok');
+      markDone(6);
+    } else {
+      let h = '✗ ';
+      if (!okT) h += 'Sin mínimo en 270°: π/180·(t−80) = 3π/2, despeja t. ';
+      if (!okL) h += 'L = 12 + 8·(−1) = ? ';
+      feedback('fb6', h, 'err');
+    }
+  }
+
+  function checkTask7() {
+    const t = parseFloat(document.getElementById('t7a').value);
+    const okT = t === 230;
+    setInputState('t7a', okT);
+    if (okT) {
+      feedback('fb7', '✓ Exacto. sin(150°) = sin(30°) = 0,5 → t = 80 + 150 = 230. Simetría confirmada.', 'ok');
+      markDone(7);
+    } else {
+      feedback('fb7', '✗ Usa sin(150°) = 0,5 y la ecuación π/180·(t−80) = 150π/180. Simplifica π.', 'err');
+    }
+  }
+
+  // ── GRAPH ──
+  window.addEventListener('load', () => {
+    const canvas = document.getElementById('sineGraph');
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const W = canvas.parentElement.clientWidth - 32;
+    const H = 220;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const pad = { t: 16, b: 36, l: 44, r: 20 };
+    const gW = W - pad.l - pad.r;
+    const gH = H - pad.t - pad.b;
+
+    function tToX(t) { return pad.l + (t / 360) * gW; }
+    function lToY(l) { return pad.t + (1 - (l - 4) / 16) * gH; }
+
+    // Grid
+    ctx.strokeStyle = '#1e3a5f';
+    ctx.lineWidth = 0.5;
+    [4, 8, 12, 16, 20].forEach(l => {
+      ctx.beginPath(); ctx.moveTo(pad.l, lToY(l)); ctx.lineTo(pad.l + gW, lToY(l)); ctx.stroke();
+    });
+    [0, 90, 180, 270, 360].forEach(t => {
+      ctx.beginPath(); ctx.moveTo(tToX(t), pad.t); ctx.lineTo(tToX(t), pad.t + gH); ctx.stroke();
+    });
+
+    // Equilibrium line
+    ctx.strokeStyle = '#334155';
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(pad.l, lToY(12)); ctx.lineTo(pad.l + gW, lToY(12)); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Threshold line 16h
+    ctx.strokeStyle = '#7c3aed44';
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(pad.l, lToY(16)); ctx.lineTo(pad.l + gW, lToY(16)); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Curve
+    ctx.strokeStyle = '#00d4ff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let t = 0; t <= 360; t++) {
+      const l = 12 + 8 * Math.sin((Math.PI / 180) * (t - 80));
+      if (t === 0) ctx.moveTo(tToX(t), lToY(l));
+      else ctx.lineTo(tToX(t), lToY(l));
+    }
+    ctx.stroke();
+
+    // Marked points
+    const pts = [
+      { t: 80, l: 12, label: 't=80', color: '#10b981' },
+      { t: 110, l: 16, label: 't=110', color: '#f59e0b' },
+      { t: 170, l: 20, label: 't=170', color: '#ef4444' },
+      { t: 230, l: 16, label: 't=230', color: '#f59e0b' },
+      { t: 350, l: 4,  label: 't=350', color: '#7c3aed' },
+    ];
+    pts.forEach(p => {
+      const x = tToX(p.t), y = lToY(p.l);
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = p.color;
+      ctx.font = '10px Space Mono, monospace';
+      ctx.fillText(p.label, x - 18, y - 8);
+    });
+
+    // Axis labels
+    ctx.fillStyle = '#475569';
+    ctx.font = '10px Space Mono, monospace';
+    [4, 8, 12, 16, 20].forEach(l => {
+      ctx.fillText(l + 'h', pad.l - 30, lToY(l) + 4);
+    });
+    [0, 90, 180, 270, 360].forEach(t => {
+      ctx.fillText(t, tToX(t) - 6, pad.t + gH + 16);
+    });
+  });
+</script>
+</body>
+</html>
